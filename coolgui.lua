@@ -1,148 +1,165 @@
--- CoolKid GUI - Client Side Effects Only
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local uis = game:GetService("UserInputService")
-local tweenService = game:GetService("TweenService")
-local runService = game:GetService("RunService")
+-- Advanced CoolKid GUI - Client Side Only
+-- Features: ESP, Tracers, Spinbot, Chat Spoof, Local Explosions, KillAura
 
--- Create GUI
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local uis = game:GetService("UserInputService")
+local rs = game:GetService("RunService")
+local cam = workspace.CurrentCamera
+
+-- GUI Setup
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "CoolKidGUI"
+gui.Name = "CoolKidAdvancedGUI"
 gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 220, 0, 300)
-frame.Position = UDim2.new(0.5, -110, 0.5, -150)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.Size = UDim2.new(0, 240, 0, 320)
+frame.Position = UDim2.new(0.5, -120, 0.5, -160)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BackgroundTransparency = 0.1
 frame.BorderSizePixel = 0
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.Active = true
+frame.Draggable = true
 
-local uiList = Instance.new("UIListLayout", frame)
-uiList.Padding = UDim.new(0, 6)
-uiList.FillDirection = Enum.FillDirection.Vertical
-uiList.SortOrder = Enum.SortOrder.LayoutOrder
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "CoolKid GUI 🌀"
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
 
--- Button helper
-local function createButton(text, callback)
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, -20, 0, 30)
-	button.Position = UDim2.new(0, 10, 0, 0)
-	button.Text = text
-	button.TextColor3 = Color3.new(1,1,1)
-	button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-	button.BorderSizePixel = 0
-	button.Parent = frame
+local layout = Instance.new("UIListLayout", frame)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 6)
+title.LayoutOrder = 0
 
-	button.MouseButton1Click:Connect(callback)
+-- Utility
+local function createButton(text, order, callback)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1, -20, 0, 30)
+    btn.Position = UDim2.new(0, 10, 0, 0)
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.BorderSizePixel = 0
+    btn.LayoutOrder = order
+    btn.MouseButton1Click:Connect(callback)
 end
 
--- Effects
-local flying = false
-local speedEnabled = false
-local rainbow = false
-local godmode = false
+-- Features
+gui.Enabled = true
+local showESP, spinbot, showTracers, killAura, chatSpoof, explosions = false, false, false, false, false, false
 
-createButton("🕊️ Fly", function()
-	flying = not flying
-	if flying then
-		local hrp = char:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			local bv = Instance.new("BodyVelocity", hrp)
-			bv.Name = "CoolFly"
-			bv.MaxForce = Vector3.new(1,1,1) * 999999
-			bv.Velocity = Vector3.new(0, 50, 0)
-			task.delay(3, function()
-				if bv and bv.Parent then
-					bv:Destroy()
-				end
-			end)
-		end
-	end
+createButton("ESP Toggle", 1, function()
+    showESP = not showESP
 end)
 
-createButton("🏃 Speed", function()
-	speedEnabled = not speedEnabled
-	local hum = char:FindFirstChild("Humanoid")
-	if hum then
-		hum.WalkSpeed = speedEnabled and 64 or 16
-	end
+createButton("Tracer Toggle", 2, function()
+    showTracers = not showTracers
 end)
 
-createButton("🔄 Reset", function()
-	local hum = char:FindFirstChild("Humanoid")
-	if hum then
-		hum.Health = 0
-	end
+createButton("Spinbot", 3, function()
+    spinbot = not spinbot
 end)
 
-createButton("🧼 Clear Decals", function()
-	for _, v in pairs(workspace:GetDescendants()) do
-		if v:IsA("Decal") then
-			v:Destroy()
-		end
-	end
+createButton("KillAura (Visual)", 4, function()
+    killAura = not killAura
 end)
 
-createButton("🌈 Rainbow Character", function()
-	rainbow = not rainbow
+createButton("Chat Spoof", 5, function()
+    chatSpoof = not chatSpoof
+    if chatSpoof then
+        local msg = Instance.new("TextLabel", gui)
+        msg.Size = UDim2.new(0, 300, 0, 20)
+        msg.Position = UDim2.new(0.5, -150, 0, 100)
+        msg.Text = "[Admin]: You have been granted godmode."
+        msg.TextColor3 = Color3.new(0,1,0)
+        msg.BackgroundTransparency = 1
+        task.delay(3, function() msg:Destroy() end)
+    end
 end)
 
-createButton("🎥 TP to Random Player", function()
-	local others = {}
-	for _, p in pairs(game.Players:GetPlayers()) do
-		if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-			table.insert(others, p)
-		end
-	end
-	if #others > 0 then
-		local target = others[math.random(1, #others)]
-		workspace.CurrentCamera.CameraSubject = target.Character:FindFirstChild("Humanoid")
-	end
+createButton("Explode Locally", 6, function()
+    explosions = true
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local explosion = Instance.new("Explosion")
+            explosion.Position = p.Character.HumanoidRootPart.Position
+            explosion.BlastPressure = 0
+            explosion.BlastRadius = 0
+            explosion.Parent = workspace
+        end
+    end
 end)
 
-createButton("🎭 Fake Godmode", function()
-	godmode = not godmode
+-- Visual loops
+rs.RenderStepped:Connect(function()
+    if spinbot and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(10), 0)
+    end
 end)
 
-createButton("🌀 Spin Head", function()
-	local head = char:FindFirstChild("Head")
-	if head then
-		runService.RenderStepped:Connect(function()
-			head.CFrame *= CFrame.Angles(0, math.rad(5), 0)
-		end)
-	end
-end)
-
--- Toggle GUI
-local open = true
-local function toggleGUI()
-	open = not open
-	frame.Visible = open
+-- Drawing ESP/Tracers
+local function drawESP()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("Head") then
+            local headPos, onScreen = cam:WorldToViewportPoint(p.Character.Head.Position)
+            if onScreen then
+                local esp = Drawing.new("Text")
+                esp.Text = p.Name
+                esp.Position = Vector2.new(headPos.X, headPos.Y)
+                esp.Size = 14
+                esp.Color = Color3.new(1,1,1)
+                esp.Center = true
+                esp.Outline = true
+                esp.Visible = true
+                task.delay(0.03, function() esp:Remove() end)
+            end
+            if showTracers then
+                local line = Drawing.new("Line")
+                line.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
+                line.To = Vector2.new(headPos.X, headPos.Y)
+                line.Color = Color3.new(1,0,0)
+                line.Thickness = 1
+                line.Transparency = 0.6
+                line.Visible = true
+                task.delay(0.03, function() line:Remove() end)
+            end
+        end
+    end
 end
 
+rs.RenderStepped:Connect(function()
+    if showESP or showTracers then
+        pcall(drawESP)
+    end
+end)
+
+-- Toggle GUI with B
 uis.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if input.KeyCode == Enum.KeyCode.B then
-		toggleGUI()
-	end
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.B then
+        gui.Enabled = not gui.Enabled
+    end
 end)
 
--- Rainbow loop
-runService.RenderStepped:Connect(function()
-	if rainbow and char then
-		for _, v in pairs(char:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.Color = Color3.fromHSV(tick()%5/5,1,1)
-			end
-		end
-	end
-	if godmode and char:FindFirstChild("Humanoid") then
-		char.Humanoid.Health = char.Humanoid.MaxHealth
-	end
+-- KillAura (visual only)
+rs.RenderStepped:Connect(function()
+    if killAura and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("Humanoid") then
+                if (p.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude < 10 then
+                    p.Character.Humanoid:TakeDamage(0) -- visual flick
+                end
+            end
+        end
+    end
 end)
 
--- Character respawn handler
-player.CharacterAdded:Connect(function(newChar)
-	char = newChar
+-- Character update\player.CharacterAdded:Connect(function(c)
+    char = c
 end)
