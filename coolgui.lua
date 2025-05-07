@@ -1,125 +1,148 @@
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
-local UIS = game:GetService("UserInputService")
+-- CoolKid GUI - Client Side Effects Only
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local uis = game:GetService("UserInputService")
+local tweenService = game:GetService("TweenService")
+local runService = game:GetService("RunService")
 
-local player = Players.LocalPlayer
+-- Create GUI
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "CoolKidGUI"
+gui.ResetOnSpawn = false
 
--- Создаём или находим RemoteEvent
-local remote = ReplicatedStorage:FindFirstChild("AdminCommandEvent")
-if not remote then
-    remote = Instance.new("RemoteEvent")
-    remote.Name = "AdminCommandEvent"
-    remote.Parent = ReplicatedStorage
-end
-
--- Проверка: не дублируем GUI
-if player.PlayerGui:FindFirstChild("CoolKidGui") then
-	player.PlayerGui:FindFirstChild("CoolKidGui"):Destroy()
-end
-
--- Создание GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CoolKidGui"
-screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
+local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 220, 0, 300)
-frame.Position = UDim2.new(0, 20, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-frame.BorderSizePixel = 3
-frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
-frame.Active = true
-frame.Draggable = true
-frame.Visible = false
-frame.BackgroundTransparency = 1
-frame.Parent = screenGui
+frame.Position = UDim2.new(0.5, -110, 0.5, -150)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BackgroundTransparency = 0.1
+frame.BorderSizePixel = 0
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
 
-local function toggleGUI()
-	if frame.Visible then
-		TweenService:Create(frame, TweenInfo.new(0.3), {
-			BackgroundTransparency = 1;
-			Size = UDim2.new(0, 220, 0, 0);
-		}):Play()
-		task.wait(0.3)
-		frame.Visible = false
-	else
-		frame.Visible = true
-		frame.Size = UDim2.new(0, 220, 0, 0)
-		frame.BackgroundTransparency = 1
-		TweenService:Create(frame, TweenInfo.new(0.3), {
-			BackgroundTransparency = 0;
-			Size = UDim2.new(0, 220, 0, 300);
-		}):Play()
-	end
-end
+local uiList = Instance.new("UIListLayout", frame)
+uiList.Padding = UDim.new(0, 6)
+uiList.FillDirection = Enum.FillDirection.Vertical
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-title.Text = "COOL KID GUI"
-title.TextColor3 = Color3.fromRGB(255, 0, 0)
-title.TextSize = 22
-title.Font = Enum.Font.GothamBlack
-title.Parent = frame
-
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 30, 0, 30)
-closeButton.Position = UDim2.new(1, -35, 0, 5)
-closeButton.Text = "X"
-closeButton.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 18
-closeButton.Parent = frame
-closeButton.MouseButton1Click:Connect(toggleGUI)
-
-local function createButton(text, posY, command)
+-- Button helper
+local function createButton(text, callback)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, -20, 0, 40)
-	button.Position = UDim2.new(0, 10, 0, posY)
-	button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-	button.TextColor3 = Color3.fromRGB(0, 255, 0)
-	button.Font = Enum.Font.SourceSansBold
-	button.TextSize = 20
+	button.Size = UDim2.new(1, -20, 0, 30)
+	button.Position = UDim2.new(0, 10, 0, 0)
 	button.Text = text
-	button.BorderSizePixel = 1
-	button.BorderColor3 = Color3.fromRGB(0, 255, 0)
+	button.TextColor3 = Color3.new(1,1,1)
+	button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	button.BorderSizePixel = 0
 	button.Parent = frame
 
-	button.MouseEnter:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.2), {
-			BackgroundColor3 = Color3.fromRGB(60, 0, 0)
-		}):Play()
-	end)
-
-	button.MouseLeave:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.2), {
-			BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-		}):Play()
-	end)
-
-	button.MouseButton1Click:Connect(function()
-		remote:FireServer(command)
-	end)
+	button.MouseButton1Click:Connect(callback)
 end
 
--- Кнопки
-createButton("Kill All", 50, "KillAll")
-createButton("Fly", 100, "Fly")
-createButton("Godmode", 150, "Godmode")
+-- Effects
+local flying = false
+local speedEnabled = false
+local rainbow = false
+local godmode = false
 
--- Кнопка B открывает/закрывает GUI
-UIS.InputBegan:Connect(function(input, gameProcessed)
-	if not gameProcessed and input.KeyCode == Enum.KeyCode.B then
+createButton("🕊️ Fly", function()
+	flying = not flying
+	if flying then
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			local bv = Instance.new("BodyVelocity", hrp)
+			bv.Name = "CoolFly"
+			bv.MaxForce = Vector3.new(1,1,1) * 999999
+			bv.Velocity = Vector3.new(0, 50, 0)
+			task.delay(3, function()
+				if bv and bv.Parent then
+					bv:Destroy()
+				end
+			end)
+		end
+	end
+end)
+
+createButton("🏃 Speed", function()
+	speedEnabled = not speedEnabled
+	local hum = char:FindFirstChild("Humanoid")
+	if hum then
+		hum.WalkSpeed = speedEnabled and 64 or 16
+	end
+end)
+
+createButton("🔄 Reset", function()
+	local hum = char:FindFirstChild("Humanoid")
+	if hum then
+		hum.Health = 0
+	end
+end)
+
+createButton("🧼 Clear Decals", function()
+	for _, v in pairs(workspace:GetDescendants()) do
+		if v:IsA("Decal") then
+			v:Destroy()
+		end
+	end
+end)
+
+createButton("🌈 Rainbow Character", function()
+	rainbow = not rainbow
+end)
+
+createButton("🎥 TP to Random Player", function()
+	local others = {}
+	for _, p in pairs(game.Players:GetPlayers()) do
+		if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			table.insert(others, p)
+		end
+	end
+	if #others > 0 then
+		local target = others[math.random(1, #others)]
+		workspace.CurrentCamera.CameraSubject = target.Character:FindFirstChild("Humanoid")
+	end
+end)
+
+createButton("🎭 Fake Godmode", function()
+	godmode = not godmode
+end)
+
+createButton("🌀 Spin Head", function()
+	local head = char:FindFirstChild("Head")
+	if head then
+		runService.RenderStepped:Connect(function()
+			head.CFrame *= CFrame.Angles(0, math.rad(5), 0)
+		end)
+	end
+end)
+
+-- Toggle GUI
+local open = true
+local function toggleGUI()
+	open = not open
+	frame.Visible = open
+end
+
+uis.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.B then
 		toggleGUI()
 	end
 end)
 
--- Сохраняем GUI при возрождении
-player.CharacterAdded:Connect(function()
-	wait(1)
-	screenGui.Parent = player:WaitForChild("PlayerGui")
+-- Rainbow loop
+runService.RenderStepped:Connect(function()
+	if rainbow and char then
+		for _, v in pairs(char:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.Color = Color3.fromHSV(tick()%5/5,1,1)
+			end
+		end
+	end
+	if godmode and char:FindFirstChild("Humanoid") then
+		char.Humanoid.Health = char.Humanoid.MaxHealth
+	end
+end)
+
+-- Character respawn handler
+player.CharacterAdded:Connect(function(newChar)
+	char = newChar
 end)
